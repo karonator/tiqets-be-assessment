@@ -1,6 +1,11 @@
 import csv
 import heapq
+import sys
 from collections import defaultdict
+
+
+def error_print(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def read_orders(file_path: str) -> list | None:
@@ -16,7 +21,7 @@ def read_orders(file_path: str) -> list | None:
         orders.sort()
         return orders
     except Exception as e:
-        print(f"Error reading orders file: {e}")
+        error_print(f"Error reading orders file: {e}")
     return None
 
 
@@ -33,27 +38,27 @@ def read_barcodes(file_path: str) -> list | None:
                     continue
 
                 barcode = row[0]
-                order = row[1]
+                order_id = row[1]
 
                 if barcode in unique_barcodes:
-                    print(f"Duplicate barcode {barcode}")
+                    error_print(f"Duplicate barcode {barcode}")
                     continue
                 else:
                     unique_barcodes.add(barcode)
 
-                if order:
+                if order_id:
                     barcodes.append(list(reversed(row)))
                 else:
                     unused_barcodes += 1
         barcodes.sort()
         return barcodes, unused_barcodes
     except Exception as e:
-        print(f"Error reading barcodes file: {e}")
+        error_print(f"Error reading barcodes file: {e}")
     return None
 
 
 def __main__() -> None:
-    orders = read_orders("orderws.csv")
+    orders = read_orders("orders.csv")
     if orders is None:
         return
 
@@ -63,7 +68,7 @@ def __main__() -> None:
 
     print(f"Unused barcodes: {unused_barcodes}")
 
-    # merge sorted orders and barcodes
+    # merge sorted orders and sorted by order barcodes
 
     i = 0
     j = 0
@@ -71,32 +76,43 @@ def __main__() -> None:
     current_order = []
     customers = defaultdict(int)
 
-    while i < len(orders) and j < len(barcodes):
-        if orders[i][0] == barcodes[j][0]:
-            current_order.append(barcodes[j][1])
-            j += 1
-        elif orders[i][0] < barcodes[j][0]:
-            if not current_order:
-                print(
-                    "Order {} is missing barcodes".format(
-                        orders[i][0]
-                    )
-                )
-            else:
-                print(orders[i], current_order)
-                customers[orders[i][1]] += len(current_order)
-                current_order = []
-            i += 1
-        else:
-            print(
-                "Order {} is missing customer".format(barcodes[j][0])
-            )
-            j += 1
+    try:
+        with open("output.csv", "w", newline="") as output_file:
+            writer = csv.writer(output_file)
+            writer.writerow(["order_id", "customer_id", "barcodes"])
+            while i < len(orders) and j < len(barcodes):
+                order_id = orders[i][0]
+                customer_id = orders[i][1]
 
-    top_5_customers = heapq.nlargest(
-        5, customers.items(), key=lambda x: x[1]
-    )
-    print(top_5_customers)
+                barcode_order_id = barcodes[j][0]
+                barcode = barcodes[j][1]
+
+                if order_id == barcode_order_id:
+                    current_order.append(barcode)
+                    j += 1
+                elif order_id < barcode_order_id:
+                    if not current_order:
+                        error_print(f"Order {order_id} is missing barcodes")
+                    else:
+                        # if we need the outpur with square brackets then we can use the below line
+                        # customer_id, order_id1, [barcode1, barcode2, ...]
+                        # writer.writerow([customer_id, order_id, current_order])
+                        writer.writerow([order_id, customer_id] + current_order)
+                        customers[customer_id] += len(current_order)
+                        current_order = []
+                    i += 1
+                else:
+                    error_print(f"Order {barcode_order_id} is missing customer")
+                    j += 1
+    except Exception as e:
+        error_print(f"Error writing output file: {e}")
+        return
+
+    top_5_customers = heapq.nlargest(5, customers.items(), key=lambda x: x[1])
+
+    print("Top 5 customers:")
+    for customer_data in top_5_customers:
+        print(f"{customer_data[0]}, {customer_data[1]}")
 
 
 if __name__ == "__main__":
