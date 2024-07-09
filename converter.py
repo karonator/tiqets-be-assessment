@@ -3,29 +3,68 @@ import heapq
 from collections import defaultdict
 
 
-def __main__():
+def read_orders(file_path: str) -> list | None:
     orders = []
-    with open("orders.csv") as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader, None)
-        for row in reader:
-            if len(row) != 2:
-                continue
-            orders.append(row)
-    orders.sort()
+    try:
+        with open(file_path) as orders_file:
+            reader = csv.reader(orders_file)
+            next(reader, None)
+            for row in reader:
+                if len(row) != 2:
+                    continue
+                orders.append(row)
+        orders.sort()
+        return orders
+    except Exception as e:
+        print(f"Error reading orders file: {e}")
+    return None
 
+
+def read_barcodes(file_path: str) -> list | None:
     barcodes = []
-    with open("barcodes.csv") as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader, None)
-        for row in reader:
-            if len(row) != 2:
-                continue
-            if row[1]:
-                barcodes.append([row[1], row[0]])
-    barcodes.sort()
+    unique_barcodes = set()
+    unused_barcodes = 0
+    try:
+        with open("barcodes.csv") as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader, None)
+            for row in reader:
+                if len(row) != 2:
+                    continue
+
+                barcode = row[0]
+                order = row[1]
+
+                if barcode in unique_barcodes:
+                    print(f"Duplicate barcode {barcode}")
+                    continue
+                else:
+                    unique_barcodes.add(barcode)
+
+                if order:
+                    barcodes.append(list(reversed(row)))
+                else:
+                    unused_barcodes += 1
+        barcodes.sort()
+        return barcodes, unused_barcodes
+    except Exception as e:
+        print(f"Error reading barcodes file: {e}")
+    return None
+
+
+def __main__() -> None:
+    orders = read_orders("orderws.csv")
+    if orders is None:
+        return
+
+    barcodes, unused_barcodes = read_barcodes("barcodes.csv")
+    if barcodes is None:
+        return
+
+    print(f"Unused barcodes: {unused_barcodes}")
 
     # merge sorted orders and barcodes
+
     i = 0
     j = 0
 
