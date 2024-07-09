@@ -106,7 +106,7 @@ In a real-world scenario, if we're using something like Django I'll organize DB 
 ```
 CREATE TABLE orders (
     order_id VARCHAR(255) PRIMARY KEY,
-    customer_id VARCHAR(255)
+    customer_id VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE barcodes (
