@@ -1,3 +1,4 @@
+import argparse
 import csv
 import heapq
 import sys
@@ -58,11 +59,37 @@ def read_barcodes(file_path: str) -> list | None:
 
 
 def __main__() -> None:
-    orders = read_orders("orders.csv")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Merge orders and barcodes CSV files"
+            " by order_id and write to output CSV file"
+        )
+    )
+    parser.add_argument(
+        "--orders",
+        type=str,
+        default="orders.csv",
+        help="Path to orders CSV file",
+    )
+    parser.add_argument(
+        "--barcodes",
+        type=str,
+        default="barcodes.csv",
+        help="Path to barcodes CSV file",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="output.csv",
+        help="Path to output CSV file",
+    )
+    args = parser.parse_args()
+
+    orders = read_orders(args.orders)
     if orders is None:
         return
 
-    barcodes, unused_barcodes = read_barcodes("barcodes.csv")
+    barcodes, unused_barcodes = read_barcodes(args.barcodes)
     if barcodes is None:
         return
 
@@ -77,7 +104,7 @@ def __main__() -> None:
     customers = defaultdict(int)
 
     try:
-        with open("output.csv", "w", newline="") as output_file:
+        with open(args.output, "w", newline="") as output_file:
             writer = csv.writer(output_file)
             writer.writerow(["order_id", "customer_id", "barcodes"])
             while i < len(orders) and j < len(barcodes):
@@ -94,15 +121,16 @@ def __main__() -> None:
                     if not current_order:
                         error_print(f"Order {order_id} is missing barcodes")
                     else:
-                        # if we need the outpur with square brackets then we can use the below line
-                        # customer_id, order_id1, [barcode1, barcode2, ...]
-                        # writer.writerow([customer_id, order_id, current_order])
-                        writer.writerow([order_id, customer_id] + current_order)
+                        writer.writerow(
+                            [order_id, customer_id] + current_order
+                        )
                         customers[customer_id] += len(current_order)
                         current_order = []
                     i += 1
                 else:
-                    error_print(f"Order {barcode_order_id} is missing customer")
+                    error_print(
+                        f"Order {barcode_order_id} is missing customer"
+                    )
                     j += 1
     except Exception as e:
         error_print(f"Error writing output file: {e}")

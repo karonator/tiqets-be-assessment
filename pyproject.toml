@@ -1,9 +1,9 @@
 [tool.black]
-line-length = 80
+line-length = 79
 target-version = ['py38']
 include = '\.pyi?$'
 
 [tool.isort]
 atomic = true
 profile = "black"
-line_length = 80
+line_length = 79
